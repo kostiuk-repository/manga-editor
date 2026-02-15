@@ -1,5 +1,5 @@
 // ── EVENT HISTORY LOG ──
-const HistoryLog=(function(){
+var HistoryLog=(function(){
   const STORAGE_KEY='mangaEditorHistory';
   let events=[];
   let panelEl=null;

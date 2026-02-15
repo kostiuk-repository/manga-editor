@@ -1,5 +1,5 @@
 // ── ASSET LAYER MANAGEMENT ──
-const Layers=(function(){
+var Layers=(function(){
 
   function addOverlay(panel,file){
     if(!panel.overlays)panel.overlays=[];

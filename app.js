@@ -1,6 +1,6 @@
 // ── STATE ──
-let rows=[], selPID=null, selBID=null, PC=0,RC=0,BC=0;
-let autoSaveTimer=null, autoSaveTs=null, autoSaveTick=null;
+var rows=[], selPID=null, selBID=null, PC=0,RC=0,BC=0;
+var autoSaveTimer=null, autoSaveTs=null, autoSaveTick=null;
 
 const ASSETS=[
   {name:'Speed Lines',file:'assets/speed-lines.png',desc:'Dynamic energy lines'},
@@ -67,7 +67,7 @@ function renderAll(){
 }
 
 // ── DRAG-AND-DROP PANEL SORTING ──
-let dragRowId=null;
+var dragRowId=null;
 
 function renderSidebar(){
   const list=document.getElementById('panels-list');

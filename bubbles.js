@@ -1,5 +1,5 @@
 // ── BUBBLE SHAPES & SVG GENERATION ──
-const BubbleShapes=(function(){
+var BubbleShapes=(function(){
   const NS='http://www.w3.org/2000/svg';
 
   // Tail anchor points in % of viewBox (0-100)
