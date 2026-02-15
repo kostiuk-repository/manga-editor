@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Manhwa Editor</title>
-<link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <title>Manhwa Editor</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
 <!-- Left Sidebar -->
 <div id="sidebar-left" class="sidebar">
   <h1>📖 Manhwa Editor</h1>
@@ -16,20 +17,34 @@
     ➕ Upload images
   </div>
 
-  <div class="sec">Page Panels</div>
+  <div class="sec" style="display:flex;align-items:center;justify-content:space-between">
+    <span>Page Panels</span>
+    <button class="btn bo" style="font-size:9px;padding:2px 6px" onclick="createGroup()" title="Create group from selected panels">⊞ Group</button>
+  </div>
   <div id="panels-list"></div>
 
-  <!-- AUTO-SAVE & EXPORT -->
+  <!-- History -->
+  <div class="sec" style="margin-top:4px">Event History</div>
+  <div style="background:#1a1a1a;border:1px solid #333;border-radius:5px;padding:6px">
+    <div id="history-list"></div>
+    <div style="display:flex;gap:3px;margin-top:4px">
+      <button class="btn bd" style="flex:1;font-size:9px;padding:2px" onclick="HistoryLog.clear()">Clear</button>
+      <button class="btn bd" style="flex:1;font-size:9px;padding:2px" onclick="HistoryLog.exportTxt()">Export</button>
+    </div>
+  </div>
+
+  <!-- Save & Export -->
   <div style="margin-top:auto;padding-top:7px;border-top:1px solid #333;display:flex;flex-direction:column;gap:4px">
     <div id="autosave-status">Auto-save active</div>
     <div class="brow">
-      <button class="btn bg" style="flex:1;font-size:14px" onclick="exportPage()">💾 Export PNG</button>
-      <button class="btn br" style="font-size:11px" onclick="clearAll()">🗑 Reset</button>
+      <button class="btn bg" style="flex:1;font-size:13px" onclick="exportPage()">💾 Export PNG</button>
+      <button class="btn bd" style="font-size:11px" onclick="manualSave()">💾 Save</button>
+      <button class="btn br" style="font-size:11px" onclick="clearAll()">🗑</button>
     </div>
   </div>
 </div>
 
-<!-- Toggle button for left sidebar -->
+<!-- Toggle left -->
 <button id="toggle-left" class="sidebar-toggle sidebar-toggle-left" onclick="toggleSidebar('left')">◀</button>
 
 <!-- Canvas Area -->
@@ -38,27 +53,27 @@
     <span>📐 800px</span>
     <span id="tinfo">Upload images to start</span>
     <button class="btn bg" style="margin-left:auto;font-size:11px;padding:3px 8px" onclick="manualSave()">💾 Save Now</button>
+    <button class="btn bg" style="font-size:11px;padding:3px 8px" onclick="exportPage()">⬇ Export</button>
   </div>
   <div id="page-canvas"></div>
-  <div style="width:800px;display:flex;justify-content:flex-end;margin-top:4px">
-    <button class="btn bg" onclick="exportPage()">💾 Export PNG</button>
-  </div>
 </div>
 
-<!-- Toggle button for right sidebar -->
+<!-- Toggle right -->
 <button id="toggle-right" class="sidebar-toggle sidebar-toggle-right" onclick="toggleSidebar('right')">▶</button>
 
 <!-- Right Sidebar -->
 <div id="sidebar-right" class="sidebar">
   <div class="sec">Inspector</div>
-  <div id="inspector-panel"></div>
-  
-  <div class="sec" style="margin-top:10px">Asset Library</div>
+  <div id="inspector-panel">
+    <div style="text-align:center;color:#666;padding:20px;font-size:11px">Select a panel or layer to view options</div>
+  </div>
+
+  <div class="sec" style="margin-top:6px">Asset Library</div>
   <div id="asset-library"></div>
-  
-  <div id="json-area" style="margin-top:10px">
-    <div class="sec">JSON Bubble Import</div>
-    <button class="btn by" style="width:100%;font-size:13px" onclick="openJsonImport()">📥 Import JSON</button>
+
+  <div id="json-area" style="margin-top:6px">
+    <div class="sec">JSON Import</div>
+    <button class="btn by" style="width:100%;font-size:12px;margin-top:4px" onclick="openJsonImport()">📥 Import Bubbles JSON</button>
   </div>
 </div>
 

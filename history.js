@@ -11,22 +11,17 @@ var HistoryLog=(function(){
 
   function save(){
     try{localStorage.setItem(STORAGE_KEY,JSON.stringify(events));}
-    catch(e){/* quota exceeded */}
+    catch(e){}
   }
 
   function add(type,details){
     events.push({ts:Date.now(),type:type,details:details||''});
-    // Keep only last 100 events to prevent localStorage quota issues
     if(events.length>100)events=events.slice(-100);
     save();
     render();
   }
 
-  function clear(){
-    events=[];
-    save();
-    render();
-  }
+  function clear(){events=[];save();render();}
 
   function exportTxt(){
     const lines=events.map(e=>{
@@ -47,19 +42,18 @@ var HistoryLog=(function(){
   }
 
   function render(){
-    if(!panelEl)return;
-    const list=panelEl.querySelector('#history-list');
+    const list=document.getElementById('history-list');
     if(!list)return;
     list.innerHTML='';
-    const shown=events.slice().reverse().slice(0,100);
+    const shown=events.slice().reverse().slice(0,50);
     if(shown.length===0){
-      list.innerHTML='<div style="font-size:10px;color:#555;padding:4px">No events yet.</div>';
+      list.innerHTML='<div style="font-size:9px;color:#555;padding:3px">No events yet.</div>';
       return;
     }
     shown.forEach(e=>{
       const d=document.createElement('div');
       d.className='history-item';
-      d.innerHTML='<span class="history-time">'+formatTime(e.ts)+'</span> '+
+      d.innerHTML='<span class="history-time">'+formatTime(e.ts)+'</span>'+
         '<span class="history-type">'+e.type+'</span> '+
         '<span class="history-detail">'+e.details+'</span>';
       list.appendChild(d);
@@ -72,5 +66,5 @@ var HistoryLog=(function(){
     render();
   }
 
-  return{init:init,add:add,clear:clear,exportTxt:exportTxt,render:render,load:load};
-})();
+  return{init,add,clear,exportTxt,render,load};
+})();22222222222222222222222222222222222222222222222222222222222222222222222222222222222

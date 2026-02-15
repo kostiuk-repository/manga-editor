@@ -1,6 +1,6 @@
-// ── ASSET LIBRARY MODULE — Asset library, layer management, categories ──
+// ── ASSET LIBRARY MODULE ──
 var Assets = (function() {
-  
+
   const ASSETS = {
     'overlays': [
       {id: 'speed-lines', name: 'Speed Lines', file: 'assets/speed-lines.png'},
@@ -26,180 +26,147 @@ var Assets = (function() {
       {id: 'bokeh-blur', name: 'Bokeh Blur', file: 'assets/bokeh-blur.png'}
     ]
   };
-  
+
   let currentCategory = 'overlays';
   let searchQuery = '';
-  let libraryContainer = null;
-  
+
   function init() {
-    createLibraryPanel();
-  }
-  
-  function createLibraryPanel() {
-    libraryContainer = document.getElementById('asset-library');
-    if (!libraryContainer) {
-      console.warn('Asset library container not found in sidebar');
-      return;
-    }
-    
-    libraryContainer.innerHTML = '';
-    libraryContainer.style.cssText = 'display:flex;flex-direction:column;gap:6px;max-height:400px';
-    
-    // Search input
+    // Create library in the sidebar container
+    const container = document.getElementById('asset-library');
+    if (!container) return;
+
+    // Override any display:none from CSS
+    container.style.cssText = 'display:flex;flex-direction:column;gap:6px';
+    container.innerHTML = '';
+
+    // Search
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
-    searchInput.placeholder = 'Search assets...';
-    searchInput.style.cssText = 'width:100%;background:#2a2a2a;border:1px solid#444;color:#eee;padding:5px 8px;border-radius:4px;font-size:10px;font-family:"Comic Neue",cursive';
+    searchInput.placeholder = '🔍 Search assets...';
+    searchInput.style.cssText = 'width:100%;background:#2a2a2a;border:1px solid #444;color:#eee;padding:5px 8px;border-radius:4px;font-size:10px;font-family:"Comic Neue",cursive';
     searchInput.oninput = function() {
       searchQuery = searchInput.value.toLowerCase();
       renderAssets();
     };
-    libraryContainer.appendChild(searchInput);
-    
+    container.appendChild(searchInput);
+
     // Category tabs
     const tabsContainer = document.createElement('div');
-    tabsContainer.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap';
-    
+    tabsContainer.style.cssText = 'display:flex;gap:2px;flex-wrap:wrap';
+
     const categories = [
       {key: 'overlays', label: 'Overlays'},
       {key: 'effects', label: 'Effects'},
       {key: 'tones', label: 'Tones'},
-      {key: 'atmosphere', label: 'Atmosphere'}
+      {key: 'atmosphere', label: 'Atmo'}
     ];
-    
+
     categories.forEach(cat => {
       const tab = document.createElement('button');
       tab.textContent = cat.label;
-      tab.className = 'btn';
+      tab.className = 'btn' + (cat.key === currentCategory ? ' bb' : ' bd');
       tab.style.cssText = 'flex:1;padding:3px 4px;font-size:9px;min-width:0';
       tab.onclick = function() {
         currentCategory = cat.key;
-        // Update all tabs
         Array.from(tabsContainer.children).forEach(t => {
-          t.classList.remove('bb');
+          t.className = 'btn bd';
+          t.style.cssText = 'flex:1;padding:3px 4px;font-size:9px;min-width:0';
         });
-        tab.classList.add('bb');
+        tab.className = 'btn bb';
         renderAssets();
       };
-      if (cat.key === currentCategory) {
-        tab.classList.add('bb');
-      }
       tabsContainer.appendChild(tab);
     });
-    
-    libraryContainer.appendChild(tabsContainer);
-    
-    // Asset grid container
+    container.appendChild(tabsContainer);
+
+    // Grid
     const gridContainer = document.createElement('div');
     gridContainer.id = 'asset-grid';
-    gridContainer.style.cssText = 'flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start;max-height:300px';
-    libraryContainer.appendChild(gridContainer);
-    
+    gridContainer.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:5px;max-height:240px;overflow-y:auto';
+    container.appendChild(gridContainer);
+
+    // Instruction
+    const hint = document.createElement('div');
+    hint.style.cssText = 'font-size:9px;color:#555;text-align:center;padding:2px 0';
+    hint.textContent = 'Drag asset onto a panel to apply';
+    container.appendChild(hint);
+
     renderAssets();
   }
-  
+
   function renderAssets() {
     const gridContainer = document.getElementById('asset-grid');
     if (!gridContainer) return;
-    
     gridContainer.innerHTML = '';
-    
+
     const assets = ASSETS[currentCategory] || [];
-    const filtered = assets.filter(asset => 
-      searchQuery === '' || asset.name.toLowerCase().includes(searchQuery)
-    );
-    
+    const filtered = assets.filter(a => !searchQuery || a.name.toLowerCase().includes(searchQuery));
+
     if (filtered.length === 0) {
-      gridContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#555;font-size:10px;padding:15px">No assets found</div>';
+      gridContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#555;font-size:10px;padding:10px">No assets found</div>';
       return;
     }
-    
+
     filtered.forEach(asset => {
       const card = document.createElement('div');
-      card.style.cssText = 'background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:4px;cursor:grab;transition:all 0.2s;display:flex;flex-direction:column;gap:3px;align-items:center';
+      card.style.cssText = 'background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:4px;cursor:grab;display:flex;flex-direction:column;gap:2px;align-items:center;transition:border-color 0.15s';
       card.draggable = true;
-      
-      card.onmouseenter = () => { card.style.borderColor = '#0ff'; };
-      card.onmouseleave = () => { card.style.borderColor = '#333'; };
-      card.onmousedown = () => { card.style.cursor = 'grabbing'; };
-      card.onmouseup = () => { card.style.cursor = 'grab'; };
-      
-      // Thumbnail
+      card.title = 'Drag onto a panel to apply: ' + asset.name;
+
+      card.addEventListener('mouseenter', () => card.style.borderColor = '#0ff');
+      card.addEventListener('mouseleave', () => card.style.borderColor = '#333');
+
+      // Thumbnail (colored placeholder since assets may not exist)
       const thumb = document.createElement('div');
-      thumb.style.cssText = 'width:100%;height:50px;background:#000;border-radius:3px;background-size:cover;background-position:center;background-image:url(' + asset.file + ')';
+      thumb.style.cssText = 'width:100%;height:44px;background:#222;border-radius:3px;overflow:hidden;position:relative';
+      const thumbImg = document.createElement('img');
+      thumbImg.src = asset.file;
+      thumbImg.style.cssText = 'width:100%;height:100%;object-fit:cover;opacity:0.8';
+      thumbImg.onerror = function() {
+        // Fallback colored tile if image doesn't exist
+        const colors = {overlays:'#1a3a4a',effects:'#4a1a1a',tones:'#2a2a2a',atmosphere:'#1a2a3a'};
+        thumb.style.background = colors[currentCategory] || '#222';
+        const icon = document.createElement('div');
+        icon.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:18px';
+        icon.textContent = {overlays:'🌫',effects:'💥',tones:'⬜',atmosphere:'🌫'}[currentCategory] || '🎨';
+        thumb.appendChild(icon);
+      };
+      thumb.appendChild(thumbImg);
       card.appendChild(thumb);
-      
-      // Name
+
       const name = document.createElement('div');
       name.textContent = asset.name;
       name.style.cssText = 'font-size:9px;color:#aaa;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%';
       card.appendChild(name);
-      
-      // Drag & drop handlers
+
       card.addEventListener('dragstart', function(e) {
         e.dataTransfer.setData('text/asset-file', asset.file);
         e.dataTransfer.effectAllowed = 'copy';
+        card.style.opacity = '0.6';
       });
-      
+      card.addEventListener('dragend', function() {
+        card.style.opacity = '1';
+      });
+
       gridContainer.appendChild(card);
     });
   }
-  
+
   function getAllAssets() {
     const all = [];
-    for (let cat in ASSETS) {
-      all.push(...ASSETS[cat]);
-    }
+    for (let cat in ASSETS) all.push(...ASSETS[cat]);
     return all;
   }
-  
+
+  // Add overlay to panel's overlays array (Assets module handles overlays array)
   function addOverlayToPanel(panel, assetFile) {
     if (!panel.overlays) panel.overlays = [];
-    panel.overlays.push({
-      id: Date.now(),
-      file: assetFile,
-      opacity: 0.5,
-      blendMode: 'normal'
-    });
+    const id = Date.now() + Math.floor(Math.random() * 1000);
+    panel.overlays.push({id: id, file: assetFile, opacity: 0.5, blendMode: 'normal'});
+    return id;
   }
-  
-  function removeOverlayFromPanel(panel, overlayId) {
-    if (!panel || !panel.overlays) return;
-    panel.overlays = panel.overlays.filter(o => o.id !== overlayId);
-  }
-  
-  function setOverlayOpacity(panel, overlayId, opacity) {
-    if (!panel || !panel.overlays) return;
-    const overlay = panel.overlays.find(o => o.id === overlayId);
-    if (overlay) {
-      overlay.opacity = Math.max(0, Math.min(1, opacity));
-    }
-  }
-  
-  function setOverlayBlendMode(panel, overlayId, blendMode) {
-    if (!panel || !panel.overlays) return;
-    const overlay = panel.overlays.find(o => o.id === overlayId);
-    if (overlay) {
-      overlay.blendMode = blendMode;
-    }
-  }
-  
-  function reorderOverlays(panel, fromIdx, toIdx) {
-    if (!panel || !panel.overlays) return;
-    if (fromIdx < 0 || fromIdx >= panel.overlays.length) return;
-    if (toIdx < 0 || toIdx >= panel.overlays.length) return;
-    const moved = panel.overlays.splice(fromIdx, 1)[0];
-    panel.overlays.splice(toIdx, 0, moved);
-  }
-  
+
   return {
-    init: init,
-    getAllAssets: getAllAssets,
-    addOverlayToPanel: addOverlayToPanel,
-    removeOverlayFromPanel: removeOverlayFromPanel,
-    setOverlayOpacity: setOverlayOpacity,
-    setOverlayBlendMode: setOverlayBlendMode,
-    reorderOverlays: reorderOverlays,
-    renderAssets: renderAssets
+    init, getAllAssets, addOverlayToPanel, renderAssets
   };
 })();
