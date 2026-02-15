@@ -91,3 +91,14 @@ input[type=color]{width:32px;height:24px;padding:0;border:1px solid #555;border-
 
 /* Panel drop target highlight */
 .pp.panel-drop-target{outline:3px dashed #0ff;outline-offset:-3px}
+
+/* Panel group */
+.panel-group{background:#000;border-radius:4px}
+
+/* Event history log */
+#history-panel{background:#1a1a1a;border:1px solid #333;border-radius:7px;padding:9px;display:flex;flex-direction:column;gap:6px}
+#history-list{display:flex;flex-direction:column;gap:2px}
+.history-item{font-size:9px;color:#888;padding:2px 4px;border-bottom:1px solid #222;line-height:1.4}
+.history-time{color:#555;margin-right:4px}
+.history-type{color:#0af;font-weight:700;margin-right:3px}
+.history-detail{color:#aaa}

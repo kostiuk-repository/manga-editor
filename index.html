@@ -37,6 +37,12 @@
       <button class="btn bo" onclick="swapRow()">⇄ Swap L/R</button>
     </div>
 
+    <div class="sec" style="margin-top:3px">Panel Groups</div>
+    <div class="brow">
+      <button class="btn bb" onclick="createGroup()">⊞ Group↓</button>
+      <button class="btn bo" onclick="changeGroupLayout()">⇄ Layout</button>
+    </div>
+
     <div class="sec" style="margin-top:3px">Add Bubble</div>
     <div class="brow">
       <button class="btn by" onclick="addBubble('speech')">💬 Speech</button>
@@ -53,11 +59,29 @@
       <textarea id="bt" oninput="upBT()"></textarea>
       <label>Font size: <span id="fsv">13</span>px</label>
       <input type="range" id="bfs" min="8" max="48" value="13" oninput="upBFS()">
+      <label>Shape</label>
+      <select id="bshape" onchange="upBShape()">
+        <option value="oval">Oval / Circle</option>
+        <option value="rectangle">Rectangle</option>
+        <option value="parallelogram">Parallelogram</option>
+        <option value="cloud">Cloud</option>
+        <option value="spike">Spike / Shout</option>
+      </select>
+      <label>Border Style</label>
+      <select id="bborderstyle" onchange="upBBorderStyle()">
+        <option value="solid">Solid</option>
+        <option value="dashed">Dashed</option>
+        <option value="dotted">Dotted</option>
+        <option value="double">Double</option>
+        <option value="none">None (borderless)</option>
+      </select>
       <label>Tail</label>
       <select id="btail" onchange="upBTail()">
         <option value="bottom-left">↙ Bottom Left</option>
+        <option value="bottom-center">↓ Bottom Center</option>
         <option value="bottom-right">↘ Bottom Right</option>
         <option value="top-left">↖ Top Left</option>
+        <option value="top-center">↑ Top Center</option>
         <option value="top-right">↗ Top Right</option>
         <option value="left">← Left</option>
         <option value="right">→ Right</option>
@@ -98,18 +122,30 @@
   <div id="json-area">
     <div class="sec">JSON Bubble Import</div>
     <div style="font-size:10px;color:#666;line-height:1.5">
-      <b style="color:#aaa">panelIndex</b> = panel number on page (0=first).<br>
+      <b style="color:#aaa">panelIndex</b> = panel number on page (1=first).<br>
       Omit panelIndex → goes to selected panel.<br>
-      Keys: type, text, tail, panelIndex,<br>fontSize, fillColor, textColor
+      Keys: type, text, tail, panelIndex,<br>fontSize, fillColor, textColor, shape, borderStyle
     </div>
     <textarea id="json-input" placeholder='[
-  {"panelIndex":0,"type":"speech","text":"No, no, no!","tail":"bottom-right"},
-  {"panelIndex":0,"type":"speech","text":"MORE TRAGEDY!","tail":"bottom-left"},
-  {"panelIndex":1,"type":"sfx","text":"STOP!","tail":"none"},
-  {"panelIndex":2,"type":"thought","text":"...","tail":"top-left"}
+  {"panelIndex":1,"type":"speech","text":"No, no, no!","tail":"bottom-right"},
+  {"panelIndex":1,"type":"speech","text":"MORE TRAGEDY!","tail":"bottom-left"},
+  {"panelIndex":2,"type":"sfx","text":"STOP!","tail":"none"},
+  {"panelIndex":3,"type":"thought","text":"...","tail":"top-left"}
 ]'></textarea>
     <button class="btn by" onclick="importJSON()">⚡ Import Bubbles to Panel</button>
     <div id="json-err" style="font-size:10px;color:#f88;display:none"></div>
+  </div>
+
+  <!-- EVENT HISTORY LOG -->
+  <div id="history-panel">
+    <div class="sec" style="display:flex;align-items:center;justify-content:space-between">
+      <span>Event History</span>
+      <span style="display:flex;gap:3px">
+        <button class="btn bd" style="font-size:9px;padding:1px 4px" onclick="HistoryLog.exportTxt()">📥 Export</button>
+        <button class="btn br" style="font-size:9px;padding:1px 4px" onclick="HistoryLog.clear()">🗑</button>
+      </span>
+    </div>
+    <div id="history-list" style="max-height:120px;overflow-y:auto"></div>
   </div>
 
   <!-- AUTO-SAVE & EXPORT -->
@@ -133,6 +169,9 @@
   </div>
 </div>
 
+<script src="history.js"></script>
+<script src="bubbles.js"></script>
+<script src="layers.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
