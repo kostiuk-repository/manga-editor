@@ -953,10 +953,16 @@ function renderGroup(container, row) {
   groupEl.style.minHeight = row.panels[0].height + 'px';
   
   row.panels.forEach((p, idx) => {
-    const pos = layout.positions[idx];
     const el = mkPanelEl(p, 0, p.height);
-    el.style.gridColumn = pos.col;
-    el.style.gridRow = pos.row;
+    
+    // Use explicit positions if available, otherwise auto-place
+    if (layout.positions && layout.positions[idx]) {
+      const pos = layout.positions[idx];
+      el.style.gridColumn = pos.col;
+      el.style.gridRow = pos.row;
+    }
+    // For simple column layouts, grid will auto-place
+    
     el.style.width = 'auto';
     groupEl.appendChild(el);
   });
