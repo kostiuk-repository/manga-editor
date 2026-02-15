@@ -27,6 +27,31 @@ const GROUP_LAYOUTS={
 
 function mkPanel(src){return{id:++PC,src,height:450,ox:0,oy:0,scale:100,bubbles:[],overlays:[]};}
 
+function calcGroupColWidth(cols,pos,totalW,gap){
+  const totalFr=cols.reduce((s,c)=>s+parseFloat(c),0);
+  const parts=pos.col.split('/').map(s=>s.trim());
+  const startCol=parseInt(parts[0])-1;
+  let endCol;
+  if(parts.length>1){
+    const e=parseInt(parts[1]);
+    endCol=e<0?cols.length:e-1;
+  }else{
+    endCol=startCol+1;
+  }
+  let spanFr=0;
+  for(let c=startCol;c<endCol;c++) spanFr+=parseFloat(cols[Math.min(c,cols.length-1)]);
+  const spanGaps=(endCol-startCol-1)*gap;
+  return Math.round((totalW-gap*(cols.length-1))*spanFr/totalFr+spanGaps);
+}
+
+function calcGroupColStart(cols,pos,totalW,gap){
+  const totalFr=cols.reduce((s,c)=>s+parseFloat(c),0);
+  const startCol=parseInt(pos.col.split('/')[0].trim())-1;
+  let px=0;
+  for(let c=0;c<startCol;c++)px+=Math.round((totalW-gap*(cols.length-1))*parseFloat(cols[c])/totalFr)+gap;
+  return px;
+}
+
 function getExpectedPanelWidth(pid){
   const{row,idx}=findRow(pid);
   if(!row)return 800;
@@ -36,11 +61,7 @@ function getExpectedPanelWidth(pid){
     const ldef=GROUP_LAYOUTS[row.layout];
     if(!ldef||idx>=ldef.positions.length)return 800;
     const cols=ldef.cols.split(' ');
-    const totalFr=cols.reduce((s,c)=>s+parseFloat(c),0);
-    const colPart=ldef.positions[idx].col.split(' / ')[0];
-    const colIdx=parseInt(colPart)-1;
-    const colFr=parseFloat(cols[Math.min(colIdx,cols.length-1)]);
-    return Math.round((800-4*(cols.length-1))*colFr/totalFr);
+    return calcGroupColWidth(cols,ldef.positions[idx],800,4);
   }
   return 800;
 }
@@ -388,6 +409,11 @@ function getAllPanelsOrdered(){
 }
 
 function getPanelPixelWidth(pid){
+  var el=document.getElementById('panel-el-'+pid);
+  if(el){
+    var r=el.getBoundingClientRect();
+    if(r.width>0)return r.width;
+  }
   return getExpectedPanelWidth(pid);
 }
 
@@ -736,6 +762,11 @@ function deletePreset(idx){
 }
 
 // ── AUTO-SAVE ──
+function manualSave(){
+  autoSave();
+  HistoryLog.add('manual-save','Manual save triggered');
+}
+
 function autoSave(){
   try{
     const state={
@@ -808,7 +839,7 @@ function restoreState(){
         });
       });
     });
-    autoSaveTs=Date.now();
+    autoSaveTs=null;
     return true;
   }catch(e){return false;}
 }
@@ -826,7 +857,7 @@ function clearAll(){
 
 function startAutoSave(){
   if(autoSaveTimer)clearInterval(autoSaveTimer);
-  autoSaveTimer=setInterval(autoSave,10000);
+  autoSaveTimer=setInterval(autoSave,60000);
   // Update "Xs ago" display every second
   if(autoSaveTick)clearInterval(autoSaveTick);
   autoSaveTick=setInterval(updateAutoSaveDisplay,1000);
@@ -869,18 +900,11 @@ async function exportPage(){
       const ldef=GROUP_LAYOUTS[row.layout];
       if(ldef){
         const cols=ldef.cols.split(' ');
-        const totalFr=cols.reduce((s,c)=>s+parseFloat(c),0);
-        const rowsSpec=ldef.rows.split(' ');
-        const totalRowFr=rowsSpec.reduce((s,r)=>s+parseFloat(r),0);
         row.panels.forEach((p,pi)=>{
           if(pi>=ldef.positions.length)return;
           const pos=ldef.positions[pi];
-          const colPart=pos.col.split(' / ')[0];
-          const colIdx=parseInt(colPart)-1;
-          const colFr=parseFloat(cols[Math.min(colIdx,cols.length-1)]);
-          const pw=Math.round((PAGE_W-GAP*(cols.length-1))*colFr/totalFr);
-          let px=0;
-          for(let c=0;c<colIdx;c++)px+=Math.round((PAGE_W-GAP*(cols.length-1))*parseFloat(cols[c])/totalFr)+GAP;
+          const pw=calcGroupColWidth(cols,pos,PAGE_W,GAP);
+          const px=calcGroupColStart(cols,pos,PAGE_W,GAP);
           drawPanel(ctx,p,px,curY,pw,rowH,imgCache);
         });
       }
@@ -908,8 +932,8 @@ async function drawPanel(ctx,p,px,py,pw,ph,imgCache){
 
   const img=imgCache[p.src];
   if(img){
-    const iw=Math.round(img.naturalWidth*(p.scale/100));
-    const ih=Math.round(img.naturalHeight*(p.scale/100));
+    const iw=Math.round(pw*(p.scale/100));
+    const ih=Math.round(iw*(img.naturalHeight/img.naturalWidth));
     ctx.drawImage(img, px+p.ox, py+p.oy, iw, ih);
   }
 
