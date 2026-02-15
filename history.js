@@ -16,6 +16,7 @@ var HistoryLog=(function(){
 
   function add(type,details){
     events.push({ts:Date.now(),type:type,details:details||''});
+    // Limit to 500 events to prevent localStorage quota issues
     if(events.length>500)events=events.slice(-500);
     save();
     render();
