@@ -281,6 +281,55 @@ var Panels = (function() {
     return true;
   }
   
+  function createGroupFromPanels(panelIds, layoutKey) {
+    // Find the rows containing these panels
+    const panelRows = [];
+    panelIds.forEach(pid => {
+      const result = findRow(pid);
+      if (result && result.row.type === 'single') {
+        panelRows.push({
+          panel: result.row.panels[0],
+          rowIdx: result.rowIdx
+        });
+      }
+    });
+    
+    if (panelRows.length < 2 || panelRows.length > 4) {
+      return false;
+    }
+    
+    // Sort by row index in descending order so we can safely remove rows
+    // from end to beginning without index shifting issues
+    panelRows.sort((a, b) => b.rowIdx - a.rowIdx);
+    
+    // Collect panels and remove their rows
+    const panels = [];
+    panelRows.forEach(pr => {
+      panels.unshift(pr.panel); // Add to beginning to maintain original order
+      rows.splice(pr.rowIdx, 1);
+    });
+    
+    // Set equal widths
+    panels.forEach(p => {
+      p.width = 100 / panels.length;
+      p.locked = false;
+    });
+    
+    // Create new group row
+    const newRow = {
+      id: ++RC,
+      type: 'group',
+      layout: layoutKey,
+      panels: panels
+    };
+    
+    // Insert at the position of the first selected panel
+    const insertIdx = Math.min(...panelRows.map(pr => pr.rowIdx));
+    rows.splice(insertIdx, 0, newRow);
+    
+    return true;
+  }
+  
   return {
     mkPanel: mkPanel,
     addPanel: addPanel,
@@ -295,6 +344,7 @@ var Panels = (function() {
     toggleLock: toggleLock,
     setWidth: setWidth,
     createGroup: createGroup,
+    createGroupFromPanels: createGroupFromPanels,
     ungroupRow: ungroupRow,
     changeGroupLayout: changeGroupLayout,
     getLayoutOptions: getLayoutOptions,
