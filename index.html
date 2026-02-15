@@ -111,29 +111,10 @@
     <button class="btn bb" style="margin-top:4px;width:100%" onclick="saveCurrentAsPreset()">💾 Save Current as Preset</button>
   </div>
 
-  <!-- ASSET LIBRARY -->
-  <div id="asset-library">
-    <div class="sec">Asset Library</div>
-    <div style="font-size:10px;color:#666;margin-bottom:4px">Drag onto a panel to add overlay</div>
-    <div id="asset-items"></div>
-  </div>
-
   <!-- JSON IMPORT -->
   <div id="json-area">
     <div class="sec">JSON Bubble Import</div>
-    <div style="font-size:10px;color:#666;line-height:1.5">
-      <b style="color:#aaa">panelIndex</b> = panel number on page (1=first).<br>
-      Omit panelIndex → goes to selected panel.<br>
-      Keys: type, text, tail, panelIndex,<br>fontSize, fillColor, textColor, shape, borderStyle
-    </div>
-    <textarea id="json-input" placeholder='[
-  {"panelIndex":1,"type":"speech","text":"No, no, no!","tail":"bottom-right"},
-  {"panelIndex":1,"type":"speech","text":"MORE TRAGEDY!","tail":"bottom-left"},
-  {"panelIndex":2,"type":"sfx","text":"STOP!","tail":"none"},
-  {"panelIndex":3,"type":"thought","text":"...","tail":"top-left"}
-]'></textarea>
-    <button class="btn by" onclick="importJSON()">⚡ Import Bubbles to Panel</button>
-    <div id="json-err" style="font-size:10px;color:#f88;display:none"></div>
+    <button class="btn by" style="width:100%;font-size:13px" onclick="openJsonImport()">📥 Import JSON</button>
   </div>
 
   <!-- EVENT HISTORY LOG -->
@@ -170,6 +151,9 @@
   </div>
 </div>
 
+<script src="panels.js"></script>
+<script src="modals.js"></script>
+<script src="assets.js"></script>
 <script src="history.js"></script>
 <script src="bubbles.js"></script>
 <script src="layers.js"></script>
