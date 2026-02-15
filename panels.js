@@ -6,32 +6,59 @@ var Panels = (function() {
   let rows = [];
   
   const GROUP_LAYOUTS = {
-    'equal-2': {cols: '1fr 1fr', rows: '1fr', positions: [{col: '1', row: '1'}, {col: '2', row: '1'}], label: 'Equal', count: 2},
-    'left-wide': {cols: '7fr 3fr', rows: '1fr', positions: [{col: '1', row: '1'}, {col: '2', row: '1'}], label: 'Left-wide (70/30)', count: 2},
-    'right-wide': {cols: '3fr 7fr', rows: '1fr', positions: [{col: '1', row: '1'}, {col: '2', row: '1'}], label: 'Right-wide (30/70)', count: 2},
-    
-    'equal-3': {cols: '1fr 1fr 1fr', rows: '1fr', positions: [{col: '1', row: '1'}, {col: '2', row: '1'}, {col: '3', row: '1'}], label: 'Equal thirds', count: 3},
-    'large-left-2right': {cols: '3fr 2fr', rows: '1fr 1fr', positions: [{col: '1', row: '1 / -1'}, {col: '2', row: '1'}, {col: '2', row: '2'}], label: 'Large-left + 2 stacked right', count: 3},
-    '2left-large-right': {cols: '2fr 3fr', rows: '1fr 1fr', positions: [{col: '1', row: '1'}, {col: '1', row: '2'}, {col: '2', row: '1 / -1'}], label: '2 stacked left + Large-right', count: 3},
-    
-    'equal-4': {cols: '1fr 1fr 1fr 1fr', rows: '1fr', positions: [{col: '1', row: '1'}, {col: '2', row: '1'}, {col: '3', row: '1'}, {col: '4', row: '1'}], label: 'Equal row of 4', count: 4},
-    '2x2': {cols: '1fr 1fr', rows: '1fr 1fr', positions: [{col: '1', row: '1'}, {col: '2', row: '1'}, {col: '1', row: '2'}, {col: '2', row: '2'}], label: '2×2 grid', count: 4},
-    '1left-3right': {cols: '1fr 1fr', rows: '1fr 1fr 1fr', positions: [{col: '1', row: '1 / -1'}, {col: '2', row: '1'}, {col: '2', row: '2'}, {col: '2', row: '3'}], label: '1 tall-left + 3 stacked right', count: 4},
-    '3left-1right': {cols: '1fr 1fr', rows: '1fr 1fr 1fr', positions: [{col: '1', row: '1'}, {col: '1', row: '2'}, {col: '1', row: '3'}, {col: '2', row: '1 / -1'}], label: '3 stacked left + 1 tall-right', count: 4}
+    // 2-panel layouts
+    'col-2':        { cols: '1fr 1fr',      rows: '1fr',         label: '2 columns',              count: 2 },
+    'col-2-left':   { cols: '2fr 1fr',      rows: '1fr',         label: 'Wide left + narrow right', count: 2 },
+    'col-2-right':  { cols: '1fr 2fr',      rows: '1fr',         label: 'Narrow left + wide right', count: 2 },
+
+    // 3-panel layouts  
+    'col-3':        { cols: '1fr 1fr 1fr',  rows: '1fr',         label: '3 equal columns',         count: 3 },
+    'col-2-stack-r':{ cols: '2fr 1fr',      rows: '1fr 1fr',     label: 'Wide left + 2 stacked right', count: 3,
+                      positions: [
+                        { col: '1', row: '1 / 3' },
+                        { col: '2', row: '1' },
+                        { col: '2', row: '2' }
+                      ]},
+    'col-2-stack-l':{ cols: '1fr 2fr',      rows: '1fr 1fr',     label: '2 stacked left + wide right', count: 3,
+                      positions: [
+                        { col: '1', row: '1' },
+                        { col: '1', row: '2' },
+                        { col: '2', row: '1 / 3' }
+                      ]},
+
+    // 4-panel layouts
+    'col-4':        { cols: '1fr 1fr 1fr 1fr', rows: '1fr',      label: '4 equal columns',         count: 4 },
+    '2x2':          { cols: '1fr 1fr',      rows: '1fr 1fr',     label: '2×2 grid',                count: 4 },
+    'col-2-stack-r3':{ cols: '2fr 1fr',     rows: '1fr 1fr 1fr', label: 'Wide left + 3 stacked right', count: 4,
+                      positions: [
+                        { col: '1', row: '1 / 4' },
+                        { col: '2', row: '1' },
+                        { col: '2', row: '2' },
+                        { col: '2', row: '3' }
+                      ]},
+    'col-2-stack-l3':{ cols: '1fr 2fr',     rows: '1fr 1fr 1fr', label: '3 stacked left + wide right', count: 4,
+                      positions: [
+                        { col: '1', row: '1' },
+                        { col: '1', row: '2' },
+                        { col: '1', row: '3' },
+                        { col: '2', row: '1 / 4' }
+                      ]}
   };
   
   function mkPanel(src) {
     return {
       id: ++PC,
       src: src,
-      height: 450,
+      height: 450,  // Default, will be updated based on aspect ratio
+      aspectRatio: null,  // Will be calculated from image
       ox: 0,
       oy: 0,
       scale: 100,
       width: 100, // Width percentage (default 100% for single panels)
       locked: false, // Lock state for width
       bubbles: [],
-      overlays: []
+      overlays: [],
+      layers: []  // New layer system
     };
   }
   
@@ -220,10 +247,38 @@ var Panels = (function() {
     const options = [];
     for (let key in GROUP_LAYOUTS) {
       if (GROUP_LAYOUTS[key].count === panelCount) {
-        options.push({key: key, ...GROUP_LAYOUTS[key]});
+        const layout = {...GROUP_LAYOUTS[key]};
+        
+        // Auto-generate positions if not explicitly defined
+        if (!layout.positions) {
+          layout.positions = [];
+          const colsCount = layout.cols.split(' ').length;
+          for (let i = 0; i < panelCount; i++) {
+            const col = (i % colsCount) + 1;
+            const row = Math.floor(i / colsCount) + 1;
+            layout.positions.push({ col: String(col), row: String(row) });
+          }
+        }
+        
+        options.push({key: key, ...layout});
       }
     }
     return options;
+  }
+  
+  function changeGroupLayout(rowIdx, newLayoutKey) {
+    if (rowIdx < 0 || rowIdx >= rows.length) return false;
+    
+    const row = rows[rowIdx];
+    if (row.type !== 'group' && row.type !== 'row') return false;
+    
+    const layout = GROUP_LAYOUTS[newLayoutKey];
+    if (!layout || layout.count !== row.panels.length) return false;
+    
+    row.layout = newLayoutKey;
+    row.type = 'group';
+    
+    return true;
   }
   
   return {
@@ -241,6 +296,7 @@ var Panels = (function() {
     setWidth: setWidth,
     createGroup: createGroup,
     ungroupRow: ungroupRow,
+    changeGroupLayout: changeGroupLayout,
     getLayoutOptions: getLayoutOptions,
     GROUP_LAYOUTS: GROUP_LAYOUTS,
     getPC: () => PC,

@@ -1,14 +1,89 @@
-// ── ASSET LAYER MANAGEMENT ──
+// ── ASSET LAYER MANAGEMENT WITH Z-ORDER SYSTEM ──
 var Layers=(function(){
 
+  // Initialize layers array from existing bubbles and overlays
+  function initializeLayers(panel) {
+    if (!panel.layers || panel.layers.length === 0) {
+      panel.layers = [];
+      
+      // Add image layer (always first, zIndex 0)
+      panel.layers.push({
+        id: 'img-' + panel.id,
+        kind: 'image',
+        zIndex: 0
+      });
+      
+      // Add existing overlays
+      if (panel.overlays && panel.overlays.length > 0) {
+        panel.overlays.forEach((ov, idx) => {
+          panel.layers.push({
+            id: ov.id,
+            kind: 'overlay',
+            file: ov.file,
+            opacity: ov.opacity,
+            blendMode: ov.blendMode || 'normal',
+            zIndex: idx + 1
+          });
+        });
+      }
+      
+      // Add existing bubbles
+      if (panel.bubbles && panel.bubbles.length > 0) {
+        const baseZ = (panel.overlays || []).length + 1;
+        panel.bubbles.forEach((b, idx) => {
+          panel.layers.push({
+            id: b.id,
+            kind: 'bubble',
+            bubbleData: b,
+            zIndex: baseZ + idx
+          });
+        });
+      }
+    }
+    
+    // Sort layers by zIndex
+    panel.layers.sort((a, b) => a.zIndex - b.zIndex);
+  }
+
+  // Sync views - regenerate bubbles and overlays arrays from layers
+  function syncViews(panel) {
+    if (!panel.layers) return;
+    
+    panel.overlays = panel.layers
+      .filter(l => l.kind === 'overlay')
+      .map(l => ({
+        id: l.id,
+        file: l.file,
+        opacity: l.opacity,
+        blendMode: l.blendMode
+      }));
+    
+    panel.bubbles = panel.layers
+      .filter(l => l.kind === 'bubble')
+      .map(l => l.bubbleData);
+  }
+
   function addOverlay(panel,file){
-    if(!panel.overlays)panel.overlays=[];
-    panel.overlays.push({id:Date.now(),file:file,opacity:0.5});
+    initializeLayers(panel);
+    
+    const maxZ = Math.max(...panel.layers.map(l => l.zIndex), 0);
+    const newLayer = {
+      id: Date.now(),
+      kind: 'overlay',
+      file: file,
+      opacity: 0.5,
+      blendMode: 'normal',
+      zIndex: maxZ + 1
+    };
+    
+    panel.layers.push(newLayer);
+    syncViews(panel);
   }
 
   function removeOverlay(panel,ovId){
-    if(!panel||!panel.overlays)return;
-    panel.overlays=panel.overlays.filter(function(o){return o.id!==ovId;});
+    if(!panel||!panel.layers)return;
+    panel.layers = panel.layers.filter(l => !(l.kind === 'overlay' && l.id === ovId));
+    syncViews(panel);
   }
 
   function reorderOverlay(panel,fromIdx,toIdx){
@@ -17,29 +92,99 @@ var Layers=(function(){
     if(toIdx<0||toIdx>=panel.overlays.length)return;
     var moved=panel.overlays.splice(fromIdx,1)[0];
     panel.overlays.splice(toIdx,0,moved);
+    
+    // Update layers to match new overlay order
+    const overlayLayers = panel.layers.filter(l => l.kind === 'overlay');
+    const otherLayers = panel.layers.filter(l => l.kind !== 'overlay');
+    
+    panel.layers = otherLayers;
+    panel.overlays.forEach((ov, idx) => {
+      const layer = overlayLayers.find(l => l.id === ov.id);
+      if (layer) {
+        layer.zIndex = idx + 1; // Keep overlays between image (0) and bubbles
+        panel.layers.push(layer);
+      }
+    });
+    
+    panel.layers.sort((a, b) => a.zIndex - b.zIndex);
   }
 
   function setOpacity(panel,ovId,opacity){
-    if(!panel||!panel.overlays)return;
-    var ov=panel.overlays.find(function(o){return o.id===ovId;});
-    if(ov)ov.opacity=Math.max(0,Math.min(1,opacity));
+    if(!panel||!panel.layers)return;
+    const layer = panel.layers.find(l => l.kind === 'overlay' && l.id === ovId);
+    if(layer) {
+      layer.opacity = Math.max(0,Math.min(1,opacity));
+      syncViews(panel);
+    }
+  }
+  
+  function setLayerZ(panel, layerId, newZ) {
+    if (!panel || !panel.layers) return;
+    const layer = panel.layers.find(l => l.id === layerId);
+    if (!layer) return;
+    
+    // Don't allow moving the image layer
+    if (layer.kind === 'image') return;
+    
+    layer.zIndex = newZ;
+    panel.layers.sort((a, b) => a.zIndex - b.zIndex);
+    syncViews(panel);
+  }
+  
+  function moveLayerUp(panel, layerId) {
+    if (!panel || !panel.layers) return;
+    const idx = panel.layers.findIndex(l => l.id === layerId);
+    if (idx < 0 || idx >= panel.layers.length - 1) return;
+    
+    const layer = panel.layers[idx];
+    const nextLayer = panel.layers[idx + 1];
+    
+    // Swap zIndex values
+    const temp = layer.zIndex;
+    layer.zIndex = nextLayer.zIndex;
+    nextLayer.zIndex = temp;
+    
+    panel.layers.sort((a, b) => a.zIndex - b.zIndex);
+    syncViews(panel);
+  }
+  
+  function moveLayerDown(panel, layerId) {
+    if (!panel || !panel.layers) return;
+    const idx = panel.layers.findIndex(l => l.id === layerId);
+    if (idx <= 1) return; // Don't go below image layer
+    
+    const layer = panel.layers[idx];
+    const prevLayer = panel.layers[idx - 1];
+    
+    // Swap zIndex values
+    const temp = layer.zIndex;
+    layer.zIndex = prevLayer.zIndex;
+    prevLayer.zIndex = temp;
+    
+    panel.layers.sort((a, b) => a.zIndex - b.zIndex);
+    syncViews(panel);
   }
 
   function renderOverlays(panelEl,panel,onRemove){
-    if(!panel.overlays)return;
-    panel.overlays.forEach(function(ov){
-      var layer=document.createElement('div');
-      layer.className='overlay-layer';
-      var ovImg=document.createElement('img');
-      ovImg.src=ov.file;
-      ovImg.style.opacity=ov.opacity!==undefined?ov.opacity:0.5;
-      layer.appendChild(ovImg);
-      var del=document.createElement('div');
-      del.className='overlay-del';del.textContent='\u2715';
-      del.onclick=function(e){e.stopPropagation();onRemove(panel.id,ov.id);};
-      layer.appendChild(del);
-      panelEl.appendChild(layer);
-    });
+    if(!panel.layers) initializeLayers(panel);
+    
+    // Render only overlay layers in zIndex order
+    panel.layers
+      .filter(l => l.kind === 'overlay')
+      .forEach(function(layer){
+        var layerEl=document.createElement('div');
+        layerEl.className='overlay-layer';
+        layerEl.style.zIndex = layer.zIndex;
+        var ovImg=document.createElement('img');
+        ovImg.src=layer.file;
+        ovImg.style.opacity=layer.opacity!==undefined?layer.opacity:0.5;
+        layerEl.appendChild(ovImg);
+        var del=document.createElement('div');
+        del.className='overlay-del';del.textContent='\u2715';
+        del.onclick=function(e){e.stopPropagation();onRemove(panel.id,layer.id);};
+        layerEl.appendChild(del);
+        panelEl.appendChild(layerEl);
+      });
   }
 
   function renderOverlayList(container,panel,onRemove,onReorder,onOpacity){
@@ -101,10 +246,15 @@ var Layers=(function(){
   }
 
   return{
+    initializeLayers: initializeLayers,
+    syncViews: syncViews,
     addOverlay:addOverlay,
     removeOverlay:removeOverlay,
     reorderOverlay:reorderOverlay,
     setOpacity:setOpacity,
+    setLayerZ: setLayerZ,
+    moveLayerUp: moveLayerUp,
+    moveLayerDown: moveLayerDown,
     renderOverlays:renderOverlays,
     renderOverlayList:renderOverlayList
   };

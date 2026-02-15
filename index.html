@@ -30,17 +30,10 @@
     <label>Scale (%)</label>
     <input type="range" id="sc" min="40" max="300" value="100" oninput="upSC()">
 
-    <div class="sec" style="margin-top:3px">Row Layout</div>
-    <div class="brow">
-      <button class="btn bb" onclick="mergeRow()">⊞ Merge↓</button>
-      <button class="btn bd" onclick="splitRow()">⊟ Split</button>
-      <button class="btn bo" onclick="swapRow()">⇄ Swap L/R</button>
-    </div>
-
     <div class="sec" style="margin-top:3px">Panel Groups</div>
     <div class="brow">
       <button class="btn bb" onclick="createGroup()">⊞ Group↓</button>
-      <button class="btn bo" onclick="changeGroupLayout()">⇄ Layout</button>
+      <button class="btn bo" onclick="changeGroupLayoutUI()">⇄ Layout</button>
     </div>
 
     <div class="sec" style="margin-top:3px">Add Bubble</div>
@@ -102,13 +95,9 @@
 
     <div class="sec" style="margin-top:3px">Overlays on Panel</div>
     <div id="overlay-list"></div>
-  </div>
-
-  <!-- BUBBLE PRESETS -->
-  <div id="preset-area">
-    <div class="sec">Bubble Presets</div>
-    <div id="preset-list"></div>
-    <button class="btn bb" style="margin-top:4px;width:100%" onclick="saveCurrentAsPreset()">💾 Save Current as Preset</button>
+    
+    <div class="sec" style="margin-top:3px">Asset Library</div>
+    <div id="asset-library"></div>
   </div>
 
   <!-- JSON IMPORT -->

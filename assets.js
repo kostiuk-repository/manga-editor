@@ -29,54 +29,36 @@ var Assets = (function() {
   
   let currentCategory = 'overlays';
   let searchQuery = '';
-  let floatingPanel = null;
+  let libraryContainer = null;
   
   function init() {
-    createFloatingPanel();
+    createLibraryPanel();
   }
   
-  function createFloatingPanel() {
-    if (floatingPanel) return;
+  function createLibraryPanel() {
+    libraryContainer = document.getElementById('asset-library');
+    if (!libraryContainer) {
+      console.warn('Asset library container not found in sidebar');
+      return;
+    }
     
-    floatingPanel = document.createElement('div');
-    floatingPanel.id = 'asset-library-floating';
-    floatingPanel.style.cssText = `
-      position: fixed;
-      right: 20px;
-      top: 20px;
-      width: 280px;
-      height: 360px;
-      background: #111;
-      border: 2px solid #444;
-      border-radius: 10px;
-      padding: 12px;
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    `;
-    
-    // Title
-    const title = document.createElement('div');
-    title.textContent = '🎨 Asset Library';
-    title.style.cssText = 'font-family:Bangers,cursive;font-size:16px;letter-spacing:1px;color:#fff;text-align:center;border-bottom:1px solid #333;padding-bottom:8px';
-    floatingPanel.appendChild(title);
+    libraryContainer.innerHTML = '';
+    libraryContainer.style.cssText = 'display:flex;flex-direction:column;gap:6px;max-height:400px';
     
     // Search input
     const searchInput = document.createElement('input');
     searchInput.type = 'text';
     searchInput.placeholder = 'Search assets...';
-    searchInput.style.cssText = 'width:100%;background:#2a2a2a;border:1px solid#444;color:#eee;padding:6px 8px;border-radius:4px;font-size:11px;font-family:"Comic Neue",cursive';
+    searchInput.style.cssText = 'width:100%;background:#2a2a2a;border:1px solid#444;color:#eee;padding:5px 8px;border-radius:4px;font-size:10px;font-family:"Comic Neue",cursive';
     searchInput.oninput = function() {
       searchQuery = searchInput.value.toLowerCase();
       renderAssets();
     };
-    floatingPanel.appendChild(searchInput);
+    libraryContainer.appendChild(searchInput);
     
     // Category tabs
     const tabsContainer = document.createElement('div');
-    tabsContainer.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap';
+    tabsContainer.style.cssText = 'display:flex;gap:3px;flex-wrap:wrap';
     
     const categories = [
       {key: 'overlays', label: 'Overlays'},
@@ -88,34 +70,30 @@ var Assets = (function() {
     categories.forEach(cat => {
       const tab = document.createElement('button');
       tab.textContent = cat.label;
-      tab.style.cssText = 'flex:1;padding:4px 6px;border:none;border-radius:4px;cursor:pointer;font-size:10px;font-family:Bangers,cursive;background:#333;color:#ccc';
+      tab.className = 'btn';
+      tab.style.cssText = 'flex:1;padding:3px 4px;font-size:9px;min-width:0';
       tab.onclick = function() {
         currentCategory = cat.key;
         // Update all tabs
         Array.from(tabsContainer.children).forEach(t => {
-          t.style.background = '#333';
-          t.style.color = '#ccc';
+          t.classList.remove('bb');
         });
-        tab.style.background = '#07a';
-        tab.style.color = '#fff';
+        tab.classList.add('bb');
         renderAssets();
       };
       if (cat.key === currentCategory) {
-        tab.style.background = '#07a';
-        tab.style.color = '#fff';
+        tab.classList.add('bb');
       }
       tabsContainer.appendChild(tab);
     });
     
-    floatingPanel.appendChild(tabsContainer);
+    libraryContainer.appendChild(tabsContainer);
     
     // Asset grid container
     const gridContainer = document.createElement('div');
     gridContainer.id = 'asset-grid';
-    gridContainer.style.cssText = 'flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-content:start';
-    floatingPanel.appendChild(gridContainer);
-    
-    document.body.appendChild(floatingPanel);
+    gridContainer.style.cssText = 'flex:1;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:6px;align-content:start;max-height:300px';
+    libraryContainer.appendChild(gridContainer);
     
     renderAssets();
   }
@@ -132,13 +110,13 @@ var Assets = (function() {
     );
     
     if (filtered.length === 0) {
-      gridContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#666;font-size:11px;padding:20px">No assets found</div>';
+      gridContainer.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#555;font-size:10px;padding:15px">No assets found</div>';
       return;
     }
     
     filtered.forEach(asset => {
       const card = document.createElement('div');
-      card.style.cssText = 'background:#222;border:1px solid #333;border-radius:6px;padding:6px;cursor:grab;transition:all 0.2s';
+      card.style.cssText = 'background:#1a1a1a;border:1px solid #333;border-radius:4px;padding:4px;cursor:grab;transition:all 0.2s;display:flex;flex-direction:column;gap:3px;align-items:center';
       card.draggable = true;
       
       card.onmouseenter = () => { card.style.borderColor = '#0ff'; };
@@ -148,17 +126,13 @@ var Assets = (function() {
       
       // Thumbnail
       const thumb = document.createElement('div');
-      thumb.style.cssText = 'width:100%;height:60px;background:#000;border-radius:4px;margin-bottom:6px;overflow:hidden;display:flex;align-items:center;justify-content:center';
-      const img = document.createElement('img');
-      img.src = asset.file;
-      img.style.cssText = 'max-width:100%;max-height:100%;object-fit:contain';
-      thumb.appendChild(img);
+      thumb.style.cssText = 'width:100%;height:50px;background:#000;border-radius:3px;background-size:cover;background-position:center;background-image:url(' + asset.file + ')';
       card.appendChild(thumb);
       
       // Name
       const name = document.createElement('div');
       name.textContent = asset.name;
-      name.style.cssText = 'font-size:9px;color:#ccc;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      name.style.cssText = 'font-size:9px;color:#aaa;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%';
       card.appendChild(name);
       
       // Drag & drop handlers
