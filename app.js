@@ -1382,40 +1382,33 @@ function ungroupRow(rowIdx, e) {
 
 // ── GROUP CREATION ──
 function createGroup() {
-  // Simple group creation by merging with next row
-  const {row, rowIdx} = Panels.findRow(selPID);
-  if (!row || rowIdx >= Panels.getRows().length - 1) return;
-  
   const rows = Panels.getRows();
-  const nextRow = rows[rowIdx + 1];
   
-  // Merge into row
-  const combined = [...row.panels, ...nextRow.panels];
-  if (combined.length > 4) {
-    alert('Cannot merge: maximum 4 panels per group');
+  // Get all single panels (not in groups)
+  const availablePanels = [];
+  rows.forEach((row, rowIdx) => {
+    if (row.type === 'single') {
+      availablePanels.push({
+        id: row.panels[0].id,
+        rowIdx: rowIdx,
+        panel: row.panels[0]
+      });
+    }
+  });
+  
+  if (availablePanels.length < 2) {
+    alert('Need at least 2 single panels to create a group');
     return;
   }
   
-  // Set equal widths
-  combined.forEach(p => {
-    p.width = 100 / combined.length;
-    p.locked = false;
+  // Open the new group creation modal
+  Modals.openCreateGroup(availablePanels, (panelIds, layoutKey) => {
+    // Create group from selected panels
+    Panels.createGroupFromPanels(panelIds, layoutKey);
+    HistoryLog.add('GROUP_CREATE', `Group created with ${panelIds.length} panels, layout: ${layoutKey}`);
+    renderAll();
+    renderInspector();
   });
-  
-  row.panels = combined;
-  row.type = 'group';
-  
-  // Select appropriate default layout
-  const layoutKey = combined.length === 2 ? 'col-2' : 
-                    combined.length === 3 ? 'col-3' : 
-                    combined.length === 4 ? 'col-4' : 'col-2';
-  row.layout = layoutKey;
-  
-  rows.splice(rowIdx + 1, 1);
-  Panels.setRows(rows);
-  
-  HistoryLog.add('GROUP_CREATE', `${combined.length} panels merged into group`);
-  renderAll();
 }
 
 function changeGroupLayoutUI(rowIdx) {

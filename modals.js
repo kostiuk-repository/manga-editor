@@ -172,6 +172,237 @@ var Modals = (function() {
     }
   }
   
+  function createGroupCreationModal(availablePanels, onConfirm) {
+    const modal = document.createElement('div');
+    modal.style.cssText = 'background:#1a1a1a;border:2px solid #444;border-radius:10px;padding:20px;width:90%;max-width:700px;max-height:80vh;overflow-y:auto;color:#eee;font-family:"Comic Neue",cursive';
+    
+    // Title
+    const title = document.createElement('h2');
+    title.textContent = 'Create Group from Selected Panels';
+    title.style.cssText = 'margin:0 0 15px 0;font-family:Bangers,cursive;letter-spacing:1px;color:#fff;font-size:24px';
+    modal.appendChild(title);
+    
+    // Panel selection
+    const selectionSection = document.createElement('div');
+    selectionSection.style.cssText = 'margin-bottom:20px';
+    
+    const selectionTitle = document.createElement('div');
+    selectionTitle.textContent = 'Select panels to include:';
+    selectionTitle.style.cssText = 'font-size:14px;color:#ff0;margin-bottom:10px';
+    selectionSection.appendChild(selectionTitle);
+    
+    const checkboxContainer = document.createElement('div');
+    checkboxContainer.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px';
+    
+    const selectedPanels = new Set();
+    const checkboxes = [];
+    
+    availablePanels.forEach((panel, idx) => {
+      const checkboxWrapper = document.createElement('label');
+      checkboxWrapper.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px;background:#222;border:1px solid #333;border-radius:4px;transition:all 0.2s';
+      checkboxWrapper.onmouseenter = () => { checkboxWrapper.style.borderColor = '#ff0'; };
+      checkboxWrapper.onmouseleave = () => { 
+        checkboxWrapper.style.borderColor = selectedPanels.has(panel.id) ? '#0f0' : '#333'; 
+      };
+      
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.value = panel.id;
+      checkbox.style.cssText = 'width:16px;height:16px;cursor:pointer';
+      checkbox.onchange = () => {
+        if (checkbox.checked) {
+          selectedPanels.add(panel.id);
+          checkboxWrapper.style.borderColor = '#0f0';
+        } else {
+          selectedPanels.delete(panel.id);
+          checkboxWrapper.style.borderColor = '#333';
+        }
+        updateLayoutOptions();
+        updatePreview();
+      };
+      checkboxes.push({ checkbox, panelId: panel.id });
+      
+      const label = document.createElement('span');
+      label.textContent = `Panel ${idx + 1}`;
+      label.style.cssText = 'font-size:12px;color:#ccc';
+      
+      checkboxWrapper.appendChild(checkbox);
+      checkboxWrapper.appendChild(label);
+      checkboxContainer.appendChild(checkboxWrapper);
+    });
+    
+    selectionSection.appendChild(checkboxContainer);
+    modal.appendChild(selectionSection);
+    
+    // Layout options
+    const layoutSection = document.createElement('div');
+    layoutSection.style.cssText = 'margin-bottom:20px';
+    
+    const layoutTitle = document.createElement('div');
+    layoutTitle.textContent = 'Choose Layout:';
+    layoutTitle.style.cssText = 'font-size:14px;color:#ff0;margin-bottom:10px';
+    layoutSection.appendChild(layoutTitle);
+    
+    const layoutGrid = document.createElement('div');
+    layoutGrid.id = 'layout-option-grid';
+    layoutGrid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:15px';
+    layoutSection.appendChild(layoutGrid);
+    
+    modal.appendChild(layoutSection);
+    
+    // Preview section
+    const previewSection = document.createElement('div');
+    previewSection.style.cssText = 'margin-bottom:20px';
+    
+    const previewTitle = document.createElement('div');
+    previewTitle.textContent = 'Preview:';
+    previewTitle.style.cssText = 'font-size:14px;color:#ff0;margin-bottom:10px';
+    previewSection.appendChild(previewTitle);
+    
+    const previewContainer = document.createElement('div');
+    previewContainer.id = 'layout-preview-container';
+    previewContainer.style.cssText = 'width:100%;height:200px;border:2px solid #444;border-radius:8px;background:#000;display:flex;align-items:center;justify-content:center;color:#666;font-size:12px';
+    previewContainer.textContent = 'Select 2-4 panels to see preview';
+    previewSection.appendChild(previewContainer);
+    
+    modal.appendChild(previewSection);
+    
+    // Selected layout tracker
+    let selectedLayout = null;
+    
+    // Update layout options based on selected panel count
+    function updateLayoutOptions() {
+      const count = selectedPanels.size;
+      layoutGrid.innerHTML = '';
+      
+      if (count < 2 || count > 4) {
+        layoutGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#666;padding:10px">Select 2-4 panels</div>';
+        selectedLayout = null;
+        return;
+      }
+      
+      const layouts = Panels.getLayoutOptions(count);
+      
+      if (layouts.length === 0) {
+        layoutGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#666;padding:10px">No layouts available</div>';
+        selectedLayout = null;
+        return;
+      }
+      
+      // Auto-select first layout
+      selectedLayout = layouts[0].key;
+      
+      layouts.forEach((layout, idx) => {
+        const card = document.createElement('div');
+        card.className = 'layout-card-mini';
+        card.style.cssText = 'background:#222;border:2px solid ' + (idx === 0 ? '#0f0' : '#333') + ';border-radius:6px;padding:8px;cursor:pointer;transition:all 0.2s';
+        card.onclick = () => {
+          selectedLayout = layout.key;
+          // Update all card borders
+          Array.from(layoutGrid.children).forEach(c => {
+            c.style.borderColor = '#333';
+          });
+          card.style.borderColor = '#0f0';
+          updatePreview();
+        };
+        card.onmouseenter = () => { 
+          if (selectedLayout !== layout.key) card.style.borderColor = '#ff0'; 
+        };
+        card.onmouseleave = () => { 
+          card.style.borderColor = selectedLayout === layout.key ? '#0f0' : '#333'; 
+        };
+        
+        const layoutLabel = document.createElement('div');
+        layoutLabel.textContent = layout.label;
+        layoutLabel.style.cssText = 'font-size:9px;color:#aaa;margin-bottom:5px;text-align:center;line-height:1.2';
+        card.appendChild(layoutLabel);
+        
+        // Mini preview
+        const preview = document.createElement('div');
+        preview.style.cssText = 'width:100%;height:60px;border:1px solid #444;border-radius:3px;display:grid;grid-template-columns:' + layout.cols + ';grid-template-rows:' + layout.rows + ';gap:1px;background:#000';
+        
+        layout.positions.forEach((pos, pidx) => {
+          const cell = document.createElement('div');
+          cell.style.cssText = 'background:#555;border-radius:1px;grid-column:' + pos.col + ';grid-row:' + pos.row + ';display:flex;align-items:center;justify-content:center;color:#aaa;font-size:8px';
+          cell.textContent = (pidx + 1);
+          preview.appendChild(cell);
+        });
+        
+        card.appendChild(preview);
+        layoutGrid.appendChild(card);
+      });
+    }
+    
+    // Update preview with colored rectangles
+    function updatePreview() {
+      const count = selectedPanels.size;
+      
+      if (count < 2 || count > 4 || !selectedLayout) {
+        previewContainer.style.display = 'flex';
+        previewContainer.innerHTML = 'Select 2-4 panels and a layout';
+        return;
+      }
+      
+      const layouts = Panels.getLayoutOptions(count);
+      const layout = layouts.find(l => l.key === selectedLayout);
+      
+      if (!layout) return;
+      
+      previewContainer.style.display = 'grid';
+      previewContainer.style.gridTemplateColumns = layout.cols;
+      previewContainer.style.gridTemplateRows = layout.rows;
+      previewContainer.style.gap = '4px';
+      previewContainer.style.padding = '10px';
+      previewContainer.innerHTML = '';
+      
+      const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
+      
+      layout.positions.forEach((pos, idx) => {
+        const cell = document.createElement('div');
+        cell.style.cssText = 'background:' + colors[idx % colors.length] + ';border-radius:4px;grid-column:' + pos.col + ';grid-row:' + pos.row + ';display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:bold';
+        cell.textContent = (idx + 1);
+        previewContainer.appendChild(cell);
+      });
+    }
+    
+    // Button row
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:10px;justify-content:flex-end';
+    
+    const createBtn = document.createElement('button');
+    createBtn.className = 'btn bg';
+    createBtn.textContent = 'Create Group';
+    createBtn.onclick = () => {
+      const count = selectedPanels.size;
+      if (count < 2 || count > 4) {
+        alert('Please select 2-4 panels');
+        return;
+      }
+      if (!selectedLayout) {
+        alert('Please select a layout');
+        return;
+      }
+      
+      const panelIds = Array.from(selectedPanels);
+      onConfirm(panelIds, selectedLayout);
+      hide();
+    };
+    btnRow.appendChild(createBtn);
+    
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn bd';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.onclick = hide;
+    btnRow.appendChild(cancelBtn);
+    
+    modal.appendChild(btnRow);
+    
+    // Initial update
+    updateLayoutOptions();
+    
+    return modal;
+  }
+  
   function createGroupLayoutModal(panelCount, onSelect) {
     const modal = document.createElement('div');
     modal.style.cssText = 'background:#1a1a1a;border:2px solid #444;border-radius:10px;padding:20px;width:90%;max-width:700px;max-height:80vh;overflow-y:auto;color:#eee;font-family:"Comic Neue",cursive';
@@ -282,12 +513,18 @@ var Modals = (function() {
     show(modal);
   }
   
+  function openCreateGroup(availablePanels, onConfirm) {
+    const modal = createGroupCreationModal(availablePanels, onConfirm);
+    show(modal);
+  }
+  
   return {
     init: init,
     show: show,
     hide: hide,
     confirm: confirm,
     openJsonImport: openJsonImport,
-    openGroupLayout: openGroupLayout
+    openGroupLayout: openGroupLayout,
+    openCreateGroup: openCreateGroup
   };
 })();
