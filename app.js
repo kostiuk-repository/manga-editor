@@ -1,5 +1,10 @@
-// ── MANGA EDITOR V4 — Main App ──
+// ── MANGA EDITOR V5 — Main App ──
 // Uses modular architecture: panels.js, modals.js, assets.js, bubbles.js, history.js
+
+// ── CONSTANTS ──
+const SCHEMA_VERSION = 'v5';
+const STANDARD_WIDTH = 800;
+const DEFAULT_HEIGHT = 450;
 
 // ── GLOBAL STATE ──
 var selPID = null;  // Selected panel ID
@@ -40,7 +45,7 @@ function handleFiles(e) {
         const aspectRatio = tempImg.height / tempImg.width;
         const p = Panels.addPanel(ev.target.result);
         p.aspectRatio = aspectRatio;
-        p.height = Math.round(800 * aspectRatio);  // Auto-calculate from 800px width
+        p.height = Math.round(STANDARD_WIDTH * aspectRatio);  // Auto-calculate from standard width
         HistoryLog.add('PANEL_ADD', 'Panel ' + Panels.getPanelIndex(p.id) + ' added');
         renderAll();
         selPanel(p.id);
@@ -332,8 +337,8 @@ function mkPanelEl(p, width, height) {
   img.src = p.src;
   
   // Use object-position for offset control (ox, oy)
-  const oxPct = ((p.ox || 0) / 800) * 100; // Convert px to % of standard width
-  const oyPct = ((p.oy || 0) / (p.height || 450)) * 100; // Convert px to % of height
+  const oxPct = ((p.ox || 0) / STANDARD_WIDTH) * 100; // Convert px to % of standard width
+  const oyPct = ((p.oy || 0) / (p.height || DEFAULT_HEIGHT)) * 100; // Convert px to % of height
   img.style.objectPosition = `${50 + oxPct}% ${50 + oyPct}%`;
   
   // Apply scale if not 100%
@@ -984,7 +989,7 @@ function saveState() {
   try {
     const rows = Panels.getRows();
     const state = {
-      version: 'v5',
+      version: SCHEMA_VERSION,
       rows: rows.map(r => {
         const rObj = {
           id: r.id,
@@ -1072,8 +1077,8 @@ function restoreState() {
     
     const state = JSON.parse(raw);
     
-    // Check version - if not v5, clear and start fresh
-    if (state.version !== 'v5') {
+    // Check version - if not current, clear and start fresh
+    if (state.version !== SCHEMA_VERSION) {
       localStorage.removeItem('mangaEditorState');
       return;
     }
