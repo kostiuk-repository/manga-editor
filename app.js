@@ -1163,96 +1163,24 @@ function startResize(e, b, p) {
   document.addEventListener('mouseup', onUp);
 }
 
-// ── PANEL CONTROLS ──
-function renderInspector() {
-  const p = Panels.getPanel(selPID);
-  if (!p) {
-    document.getElementById('pc').style.display = 'none';
-    return;
-  }
-  
-  const pc = document.getElementById('pc');
-  pc.style.display = 'block';
-  
-  document.getElementById('ph').value = p.height;
-  document.getElementById('oy').value = p.oy;
-  document.getElementById('ox').value = p.ox;
-  document.getElementById('sc').value = p.scale;
-  
-  renderBList(p);
-  renderOverlayList(p);
+// ── OLD PANEL CONTROLS (DEPRECATED - using new inspector system) ──
+// These functions are kept for backward compatibility but should not be called
+function oldShowPC() {
+  // Deprecated - use renderInspector() instead
+  console.warn('oldShowPC called - deprecated, using renderInspector instead');
 }
 
 function renderBList(p) {
-  const list = document.getElementById('blist');
-  if (!p || !list) return;
-  
-  list.innerHTML = '';
-  if (p.bubbles.length === 0) {
-    list.innerHTML = '<div style="font-size:10px;color:#555">No bubbles yet.</div>';
-    return;
-  }
-  
-  p.bubbles.forEach(b => {
-    const d = document.createElement('div');
-    d.className = 'bi' + (b.id === selBID ? ' sel' : '');
-    d.onclick = () => selBubble(b.id);
-    
-    const dot = document.createElement('div');
-    dot.className = 'bdot';
-    dot.style.background = b.fillColor || (b.type === 'sfx' ? '#ffee00' : '#ffffff');
-    
-    const label = document.createElement('span');
-    label.style.flex = '1';
-    label.style.overflow = 'hidden';
-    label.style.textOverflow = 'ellipsis';
-    label.style.whiteSpace = 'nowrap';
-    label.textContent = b.text || '(empty)';
-    
-    d.appendChild(dot);
-    d.appendChild(label);
-    list.appendChild(d);
-  });
+  // Deprecated - bubble list now shown in tree view
 }
 
 function renderOverlayList(p) {
-  const container = document.getElementById('overlay-list');
-  Layers.renderOverlayList(container, p,
-    (pid, ovId) => {
-      Layers.removeOverlay(p, ovId);
-      HistoryLog.add('ASSET_REMOVE', `Overlay removed from Panel ${Panels.getPanelIndex(pid)}`);
-      renderAll();
-    },
-    (pid, fromIdx, toIdx) => {
-      Layers.reorderOverlay(p, fromIdx, toIdx);
-      renderAll();
-    },
-    (pid, ovId, opacity) => {
-      Layers.setOpacity(p, ovId, opacity);
-      renderAll();
-    }
-  );
+  // Deprecated - overlay list now shown in tree view
 }
 
-function showBE() {
-  const b = getSelBubble();
-  if (!b) {
-    document.getElementById('be').style.display = 'none';
-    return;
-  }
-  
-  const be = document.getElementById('be');
-  be.style.display = 'block';
-  
-  document.getElementById('bt').value = b.text || '';
-  document.getElementById('bfs').value = b.fontSize || 13;
-  document.getElementById('fsv').textContent = b.fontSize || 13;
-  document.getElementById('bshape').value = b.shape || 'oval';
-  document.getElementById('bborderstyle').value = b.borderStyle || 'solid';
-  document.getElementById('btail').value = b.tail || 'bottom-left';
-  document.getElementById('bfill').value = b.fillColor || (b.type === 'sfx' ? '#ffee00' : '#ffffff');
-  document.getElementById('btcol').value = b.textColor || '#000000';
-  document.getElementById('bstroke').value = b.strokeColor || '#000000';
+function oldShowBE() {
+  // Deprecated - use renderInspector() instead
+  console.warn('oldShowBE called - deprecated, using renderInspector instead');
 }
 
 // ── PROPERTY UPDATES ──
