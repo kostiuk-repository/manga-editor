@@ -1,6 +1,9 @@
 // ── MODALS MODULE — JSON import modal, group preview modal, confirm dialogs ──
 var Modals = (function() {
   
+  // Constants
+  const PREVIEW_COLORS = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
+  
   let modalContainer = null;
   
   function init() {
@@ -355,11 +358,9 @@ var Modals = (function() {
       previewContainer.style.padding = '10px';
       previewContainer.innerHTML = '';
       
-      const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'];
-      
       layout.positions.forEach((pos, idx) => {
         const cell = document.createElement('div');
-        cell.style.cssText = 'background:' + colors[idx % colors.length] + ';border-radius:4px;grid-column:' + pos.col + ';grid-row:' + pos.row + ';display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:bold';
+        cell.style.cssText = 'background:' + PREVIEW_COLORS[idx % PREVIEW_COLORS.length] + ';border-radius:4px;grid-column:' + pos.col + ';grid-row:' + pos.row + ';display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:bold';
         cell.textContent = (idx + 1);
         previewContainer.appendChild(cell);
       });

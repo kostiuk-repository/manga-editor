@@ -298,13 +298,14 @@ var Panels = (function() {
       return false;
     }
     
-    // Sort by row index (descending) so we can remove from end to beginning
+    // Sort by row index in descending order so we can safely remove rows
+    // from end to beginning without index shifting issues
     panelRows.sort((a, b) => b.rowIdx - a.rowIdx);
     
     // Collect panels and remove their rows
     const panels = [];
     panelRows.forEach(pr => {
-      panels.unshift(pr.panel); // Add to beginning to maintain order
+      panels.unshift(pr.panel); // Add to beginning to maintain original order
       rows.splice(pr.rowIdx, 1);
     });
     

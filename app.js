@@ -117,7 +117,14 @@ function selGroup(rowIdx) {
 function selBubble(panelId, bubbleId) {
   selPID = panelId;
   selBID = bubbleId;
-  selLayerID = bubbleId;
+  // Find the corresponding layer ID from the panel's layers
+  const panel = Panels.getPanel(panelId);
+  if (panel && panel.layers) {
+    const bubbleLayer = panel.layers.find(l => l.kind === 'bubble' && l.bubbleData && l.bubbleData.id === bubbleId);
+    selLayerID = bubbleLayer ? bubbleLayer.id : bubbleId;
+  } else {
+    selLayerID = bubbleId; // Fallback
+  }
   selGroupIdx = null;
   selectionType = 'bubble';
   renderAll();
