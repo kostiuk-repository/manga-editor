@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Visual Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #222; color: #fff; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #444; }
+        .success { color: #0f0; }
+        .error { color: #f00; }
+        button { padding: 8px 16px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Manga Editor - Visual Test</h1>
+    
+    <div class="test-section">
+        <h2>1. Module Loading</h2>
+        <div id="module-test">Testing...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Panel Creation & Layers</h2>
+        <div id="panel-test">Testing...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Group Layouts</h2>
+        <div id="layout-test">Testing...</div>
+    </div>
+    
+    <script src="panels.js"></script>
+    <script src="layers.js"></script>
+    
+    <script>
+        // Test 1: Modules loaded
+        if (typeof Panels !== 'undefined' && typeof Layers !== 'undefined') {
+            document.getElementById('module-test').innerHTML = 
+                '<span class="success">✓ Panels and Layers modules loaded successfully</span>';
+        } else {
+            document.getElementById('module-test').innerHTML = 
+                '<span class="error">✗ Failed to load modules</span>';
+        }
+        
+        // Test 2: Panel with layers
+        const panel = Panels.mkPanel('test');
+        const hasLayers = Array.isArray(panel.layers);
+        const hasAspectRatio = 'aspectRatio' in panel;
+        
+        document.getElementById('panel-test').innerHTML = 
+            '<span class="success">✓ Panel created</span><br>' +
+            '<span class="' + (hasLayers ? 'success' : 'error') + '">• Layers array: ' + hasLayers + '</span><br>' +
+            '<span class="' + (hasAspectRatio ? 'success' : 'error') + '">• AspectRatio property: ' + hasAspectRatio + '</span>';
+        
+        // Test 3: Layouts
+        const layouts2 = Panels.getLayoutOptions(2);
+        const layouts3 = Panels.getLayoutOptions(3);
+        const layouts4 = Panels.getLayoutOptions(4);
+        
+        let layoutHtml = '';
+        layoutHtml += '<span class="success">✓ ' + layouts2.length + ' layouts for 2 panels:</span><br>';
+        layouts2.forEach(l => {
+            layoutHtml += '  • ' + l.key + ': ' + l.label + '<br>';
+        });
+        
+        layoutHtml += '<br><span class="success">✓ ' + layouts3.length + ' layouts for 3 panels:</span><br>';
+        layouts3.forEach(l => {
+            layoutHtml += '  • ' + l.key + ': ' + l.label + '<br>';
+        });
+        
+        layoutHtml += '<br><span class="success">✓ ' + layouts4.length + ' layouts for 4 panels:</span><br>';
+        layouts4.forEach(l => {
+            layoutHtml += '  • ' + l.key + ': ' + l.label + '<br>';
+        });
+        
+        document.getElementById('layout-test').innerHTML = layoutHtml;
+    </script>
+</body>
+</html>
