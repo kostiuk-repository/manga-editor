@@ -16,11 +16,8 @@ window.addEventListener('DOMContentLoaded', function() {
   Assets.init();
   HistoryLog.init(document.body);
   
-  // Restore saved state
-  const restored = restoreState();
-  if (restored) {
-    HistoryLog.add('SESSION_RESTORE', 'Previous session restored');
-  }
+  // Always restore saved state unconditionally
+  restoreState();
   
   // Initial render
   renderAll();
@@ -37,10 +34,18 @@ function handleFiles(e) {
   Array.from(e.target.files).forEach(f => {
     const r = new FileReader();
     r.onload = ev => {
-      const p = Panels.addPanel(ev.target.result);
-      HistoryLog.add('PANEL_ADD', 'Panel ' + Panels.getPanelIndex(p.id) + ' added');
-      renderAll();
-      selPanel(p.id);
+      // Create image to get dimensions
+      const tempImg = new Image();
+      tempImg.onload = function() {
+        const aspectRatio = tempImg.height / tempImg.width;
+        const p = Panels.addPanel(ev.target.result);
+        p.aspectRatio = aspectRatio;
+        p.height = Math.round(800 * aspectRatio);  // Auto-calculate from 800px width
+        HistoryLog.add('PANEL_ADD', 'Panel ' + Panels.getPanelIndex(p.id) + ' added');
+        renderAll();
+        selPanel(p.id);
+      };
+      tempImg.src = ev.target.result;
     };
     r.readAsDataURL(f);
   });
@@ -317,12 +322,27 @@ function mkPanelEl(p, width, height) {
   if (width > 0) el.style.width = width + 'px';
   el.onclick = () => selPanel(p.id);
   
+  // Initialize layers if needed
+  Layers.initializeLayers(p);
+  
   // Image
   const imgWrap = document.createElement('div');
   imgWrap.className = 'pimgw';
   const img = document.createElement('img');
   img.src = p.src;
-  img.style.transform = `translate(${p.ox}px,${p.oy}px) scale(${p.scale / 100})`;
+  
+  // Use object-position for offset control (ox, oy)
+  const oxPct = ((p.ox || 0) / 800) * 100; // Convert px to % of standard width
+  const oyPct = ((p.oy || 0) / (p.height || 450)) * 100; // Convert px to % of height
+  img.style.objectPosition = `${50 + oxPct}% ${50 + oyPct}%`;
+  
+  // Apply scale if not 100%
+  const scale = (p.scale || 100) / 100;
+  if (scale !== 1) {
+    img.style.transform = `scale(${scale})`;
+    img.style.transformOrigin = 'center';
+  }
+  
   imgWrap.appendChild(img);
   el.appendChild(imgWrap);
   
@@ -713,6 +733,17 @@ function addBubble(type) {
   };
   
   p.bubbles.push(b);
+  
+  // Add to layers system
+  Layers.initializeLayers(p);
+  const maxZ = Math.max(...p.layers.map(l => l.zIndex), 0);
+  p.layers.push({
+    id: b.id,
+    kind: 'bubble',
+    bubbleData: b,
+    zIndex: maxZ + 1
+  });
+  
   HistoryLog.add('BUBBLE_ADD', `Panel ${Panels.getPanelIndex(p.id)}: "${b.text}"`);
   renderAll();
   selBubble(b.id);
@@ -726,6 +757,12 @@ function delBubble(bid, pid) {
   if (idx >= 0) {
     const text = p.bubbles[idx].text;
     p.bubbles.splice(idx, 1);
+    
+    // Remove from layers
+    if (p.layers) {
+      p.layers = p.layers.filter(l => !(l.kind === 'bubble' && l.id === bid));
+    }
+    
     HistoryLog.add('BUBBLE_DELETE', `Panel ${Panels.getPanelIndex(pid)}: "${text}"`);
   }
   
@@ -782,11 +819,7 @@ function ungroupRow(rowIdx, e) {
 
 // ── GROUP CREATION ──
 function createGroup() {
-  // For now, use simple merge - full modal implementation coming next
-  mergeRow();
-}
-
-function mergeRow() {
+  // Simple group creation by merging with next row
   const {row, rowIdx} = Panels.findRow(selPID);
   if (!row || rowIdx >= Panels.getRows().length - 1) return;
   
@@ -796,7 +829,7 @@ function mergeRow() {
   // Merge into row
   const combined = [...row.panels, ...nextRow.panels];
   if (combined.length > 4) {
-    alert('Cannot merge: maximum 4 panels per row');
+    alert('Cannot merge: maximum 4 panels per group');
     return;
   }
   
@@ -807,30 +840,43 @@ function mergeRow() {
   });
   
   row.panels = combined;
-  row.type = 'row';
+  row.type = 'group';
+  
+  // Select appropriate default layout
+  const layoutKey = combined.length === 2 ? 'col-2' : 
+                    combined.length === 3 ? 'col-3' : 
+                    combined.length === 4 ? 'col-4' : 'col-2';
+  row.layout = layoutKey;
+  
   rows.splice(rowIdx + 1, 1);
   Panels.setRows(rows);
   
-  HistoryLog.add('GROUP_CREATE', `${combined.length} panels merged into row`);
+  HistoryLog.add('GROUP_CREATE', `${combined.length} panels merged into group`);
   renderAll();
 }
 
-function splitRow() {
+function changeGroupLayoutUI() {
   const {row, rowIdx} = Panels.findRow(selPID);
-  if (!row || row.type === 'single') return;
+  if (!row || (row.type !== 'group' && row.type !== 'row')) {
+    alert('Select a panel in a group to change layout');
+    return;
+  }
   
-  Panels.ungroupRow(rowIdx);
-}
-
-function swapRow() {
-  const {row} = Panels.findRow(selPID);
-  if (!row || row.panels.length < 2) return;
+  const options = Panels.getLayoutOptions(row.panels.length);
+  if (options.length === 0) return;
   
-  const temp = row.panels[0];
-  row.panels[0] = row.panels[1];
-  row.panels[1] = temp;
+  // Simple prompt for now - could be enhanced with modal
+  const msg = options.map((o, i) => `${i+1}. ${o.label}`).join('\n');
+  const choice = prompt(`Choose layout:\n${msg}\n\nEnter number (1-${options.length}):`);
   
-  renderAll();
+  if (choice) {
+    const idx = parseInt(choice) - 1;
+    if (idx >= 0 && idx < options.length) {
+      Panels.changeGroupLayout(rowIdx, options[idx].key);
+      HistoryLog.add('GROUP_LAYOUT', `Layout changed to: ${options[idx].label}`);
+      renderAll();
+    }
+  }
 }
 
 // ── JSON IMPORT ──
@@ -925,14 +971,20 @@ function setupAssetDropTargets() {
 
 // ── AUTO-SAVE ──
 function manualSave() {
-  autoSave();
+  saveState();
   HistoryLog.add('MANUAL_SAVE', 'Manual save triggered');
 }
 
 function autoSave() {
+  saveState();
+  HistoryLog.add('AUTO_SAVE', 'State saved');
+}
+
+function saveState() {
   try {
     const rows = Panels.getRows();
     const state = {
+      version: 'v5',
       rows: rows.map(r => {
         const rObj = {
           id: r.id,
@@ -941,11 +993,13 @@ function autoSave() {
             id: p.id,
             src: p.src,
             height: p.height,
+            aspectRatio: p.aspectRatio,
             ox: p.ox,
             oy: p.oy,
             scale: p.scale,
             width: p.width || 100,
             locked: p.locked || false,
+            layers: p.layers || [],
             bubbles: p.bubbles.map(b => ({
               id: b.id,
               type: b.type,
@@ -983,7 +1037,6 @@ function autoSave() {
     localStorage.setItem('mangaEditorState', JSON.stringify(state));
     autoSaveTs = Date.now();
     updateAutoSaveDisplay();
-    HistoryLog.add('AUTO_SAVE', 'State saved');
   } catch (e) {
     const el = document.getElementById('autosave-status');
     if (el) {
@@ -1015,15 +1068,25 @@ function updateAutoSaveDisplay() {
 function restoreState() {
   try {
     const raw = localStorage.getItem('mangaEditorState');
-    if (!raw) return false;
+    if (!raw) return;
     
     const state = JSON.parse(raw);
+    
+    // Check version - if not v5, clear and start fresh
+    if (state.version !== 'v5') {
+      localStorage.removeItem('mangaEditorState');
+      return;
+    }
+    
+    // Restore counters first
+    BC = state.BC || 0;
+    Panels.setPC(state.PC || 0);
+    Panels.setRC(state.RC || 0);
+    
+    // Restore rows
     Panels.setRows(state.rows || []);
     selPID = state.selPID || null;
     selBID = state.selBID || null;
-    Panels.setPC(state.PC || 0);
-    Panels.setRC(state.RC || 0);
-    BC = state.BC || 0;
     
     // Ensure defaults on all panels
     Panels.getRows().forEach(r => {
@@ -1031,6 +1094,8 @@ function restoreState() {
         if (!p.overlays) p.overlays = [];
         if (p.width === undefined) p.width = 100;
         if (p.locked === undefined) p.locked = false;
+        if (!p.layers) p.layers = [];
+        if (!p.aspectRatio && p.height) p.aspectRatio = p.height / 800;
         p.bubbles.forEach(b => {
           if (!b.shape) b.shape = 'oval';
           if (!b.borderStyle) b.borderStyle = 'solid';
@@ -1038,10 +1103,10 @@ function restoreState() {
       });
     });
     
+    HistoryLog.add('SESSION_RESTORE', 'Previous session restored');
     autoSaveTs = null;
-    return true;
   } catch (e) {
-    return false;
+    // Silent fail - just start fresh
   }
 }
 
