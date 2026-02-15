@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Manga Editor v4 - Test Suite</title>
+<style>
+body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+.test { margin: 10px 0; padding: 5px; border-left: 3px solid #0f0; }
+.pass { border-color: #0f0; color: #0f0; }
+.fail { border-color: #f00; color: #f00; }
+.info { border-color: #0af; color: #0af; }
+h1 { color: #ff0; }
+</style>
+</head>
+<body>
+<h1>Manga Editor v4 - Module Tests</h1>
+<div id="output"></div>
+
+<script>
+function log(msg, type = 'info') {
+  const div = document.createElement('div');
+  div.className = 'test ' + type;
+  div.textContent = msg;
+  document.getElementById('output').appendChild(div);
+}
+
+function test(name, fn) {
+  try {
+    fn();
+    log('✓ ' + name, 'pass');
+    return true;
+  } catch (e) {
+    log('✗ ' + name + ': ' + e.message, 'fail');
+    return false;
+  }
+}
+
+log('=== Starting Module Tests ===', 'info');
+</script>
+
+<!-- Load modules in order -->
+<script src="panels.js"></script>
+<script>
+test('panels.js loaded', () => {
+  if (typeof Panels === 'undefined') throw new Error('Panels not defined');
+  if (typeof Panels.mkPanel !== 'function') throw new Error('mkPanel not a function');
+});
+
+test('Create panel with width property', () => {
+  const p = Panels.mkPanel('data:image/png;base64,test');
+  if (!p.width) throw new Error('Panel missing width property');
+  if (p.width !== 100) throw new Error('Default width should be 100%');
+  if (typeof p.locked !== 'boolean') throw new Error('locked should be boolean');
+});
+
+test('Add panel to rows', () => {
+  const p = Panels.addPanel('data:image/png;base64,test2');
+  const rows = Panels.getRows();
+  if (rows.length === 0) throw new Error('No rows created');
+  if (rows[rows.length - 1].panels[0].id !== p.id) throw new Error('Panel not added to row');
+});
+
+test('Get panel by ID', () => {
+  const rows = Panels.getRows();
+  const pid = rows[0].panels[0].id;
+  const p = Panels.getPanel(pid);
+  if (!p) throw new Error('Panel not found');
+  if (p.id !== pid) throw new Error('Wrong panel returned');
+});
+
+test('Panel indexing (1-based)', () => {
+  Panels.setRows([]);
+  const p1 = Panels.addPanel('test1');
+  const p2 = Panels.addPanel('test2');
+  const idx1 = Panels.getPanelIndex(p1.id);
+  const idx2 = Panels.getPanelIndex(p2.id);
+  if (idx1 !== 1) throw new Error('First panel should be index 1, got ' + idx1);
+  if (idx2 !== 2) throw new Error('Second panel should be index 2, got ' + idx2);
+});
+
+test('Get panel by index', () => {
+  const p = Panels.getPanelByIndex(1);
+  if (!p) throw new Error('Panel at index 1 not found');
+  const rows = Panels.getRows();
+  if (p.id !== rows[0].panels[0].id) throw new Error('Wrong panel returned for index 1');
+});
+
+test('Toggle lock', () => {
+  const rows = Panels.getRows();
+  const pid = rows[0].panels[0].id;
+  const p = Panels.getPanel(pid);
+  const initialLock = p.locked;
+  Panels.toggleLock(pid);
+  if (p.locked === initialLock) throw new Error('Lock state did not change');
+});
+
+test('Group layouts available', () => {
+  const layouts2 = Panels.getLayoutOptions(2);
+  const layouts3 = Panels.getLayoutOptions(3);
+  const layouts4 = Panels.getLayoutOptions(4);
+  if (layouts2.length < 2) throw new Error('Should have at least 2 layouts for 2 panels');
+  if (layouts3.length < 2) throw new Error('Should have at least 2 layouts for 3 panels');
+  if (layouts4.length < 2) throw new Error('Should have at least 2 layouts for 4 panels');
+});
+</script>
+
+<script src="modals.js"></script>
+<script>
+test('modals.js loaded', () => {
+  if (typeof Modals === 'undefined') throw new Error('Modals not defined');
+  if (typeof Modals.init !== 'function') throw new Error('init not a function');
+  if (typeof Modals.openJsonImport !== 'function') throw new Error('openJsonImport not a function');
+});
+
+test('Modal init creates container', () => {
+  Modals.init();
+  const container = document.getElementById('modal-overlay');
+  if (!container) throw new Error('Modal container not created');
+});
+</script>
+
+<script src="assets.js"></script>
+<script>
+test('assets.js loaded', () => {
+  if (typeof Assets === 'undefined') throw new Error('Assets not defined');
+  if (typeof Assets.init !== 'function') throw new Error('init not a function');
+});
+
+test('Asset library has categories', () => {
+  const assets = Assets.getAllAssets();
+  if (assets.length === 0) throw new Error('No assets defined');
+  if (assets.length < 10) throw new Error('Should have at least 10 assets');
+});
+
+test('Asset library init creates floating panel', () => {
+  Assets.init();
+  const panel = document.getElementById('asset-library-floating');
+  if (!panel) throw new Error('Floating panel not created');
+});
+
+test('Add overlay to panel', () => {
+  const p = Panels.getPanel(Panels.getRows()[0].panels[0].id);
+  const initialCount = (p.overlays || []).length;
+  Assets.addOverlayToPanel(p, 'test.png');
+  if (p.overlays.length !== initialCount + 1) throw new Error('Overlay not added');
+  if (p.overlays[p.overlays.length - 1].opacity !== 0.5) throw new Error('Default opacity not 0.5');
+});
+</script>
+
+<script src="history.js"></script>
+<script>
+test('history.js loaded', () => {
+  if (typeof HistoryLog === 'undefined') throw new Error('HistoryLog not defined');
+  if (typeof HistoryLog.add !== 'function') throw new Error('add not a function');
+});
+</script>
+
+<script src="bubbles.js"></script>
+<script>
+test('bubbles.js loaded', () => {
+  if (typeof BubbleShapes === 'undefined') throw new Error('BubbleShapes not defined');
+  if (typeof BubbleShapes.createSVG !== 'function') throw new Error('createSVG not a function');
+});
+
+test('Create bubble SVG', () => {
+  const bubble = {
+    type: 'speech',
+    text: 'Test',
+    fillColor: '#ffffff',
+    strokeColor: '#000000',
+    shape: 'oval',
+    borderStyle: 'solid',
+    tail: 'bottom-left'
+  };
+  const svg = BubbleShapes.createSVG(bubble);
+  if (!svg) throw new Error('SVG not created');
+  if (svg.tagName.toLowerCase() !== 'svg') throw new Error('Not an SVG element');
+});
+</script>
+
+<script src="layers.js"></script>
+<script>
+test('layers.js loaded', () => {
+  if (typeof Layers === 'undefined') throw new Error('Layers not defined');
+  if (typeof Layers.addOverlay !== 'function') throw new Error('addOverlay not a function');
+});
+</script>
+
+<script>
+log('=== All Module Tests Complete ===', 'info');
+
+// Summary
+const passCount = document.querySelectorAll('.pass').length;
+const failCount = document.querySelectorAll('.fail').length;
+log('Results: ' + passCount + ' passed, ' + failCount + ' failed', failCount === 0 ? 'pass' : 'fail');
+
+if (failCount === 0) {
+  log('✓ All modules loaded successfully and basic API works!', 'pass');
+  log('Ready to load main app.js', 'info');
+} else {
+  log('✗ Some tests failed - fix issues before loading app.js', 'fail');
+}
+</script>
+
+</body>
+</html>
