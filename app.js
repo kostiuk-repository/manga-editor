@@ -752,6 +752,11 @@ function delPanel(id, e) {
   }
 }
 
+function editPanelInGroup(pid, e) {
+  e.stopPropagation();
+  selPanel(pid);
+}
+
 function moveRow(rowIdx, delta, e) {
   e.stopPropagation();
   const rows = Panels.getRows();
